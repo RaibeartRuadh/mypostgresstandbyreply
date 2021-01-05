@@ -1,0 +1,2 @@
+master:5432:postgres:barman:barmanpass
+master:5432:*:streaming_barman:barmanpass

@@ -1,0 +1,163 @@
+---
+
+- hosts: slave
+  become: true
+  tasks:
+
+  - name: Ставим пакеты
+    yum:
+      name: "{{ packages }}"
+      state: present
+    vars:
+      packages:
+      - nano
+      - mc
+      - postgresql11-server
+      - postgresql11-contrib
+      - python2-psycopg2
+      - python-argcomplete
+      - python-argh
+      - python-dateutil
+      - python-setuptools
+      
+### Если нужны свои ключи #############
+#  - name: Генгерируем ssh ключи
+#    openssh_keypair:
+#      path: /root/.ssh/id_rsa
+#  - name: Сохраняем публичный ключик в шару
+#    fetch: 
+#      src: /root/.ssh/id_rsa
+#      dest: masterssh/
+#      flat: yes
+#  - name: Сохраняем публичный ключик в шару
+#    fetch: 
+#      src: /root/.ssh/id_rsa.pub
+#      dest: masterssh/
+#      flat: yes
+#######################################
+
+  - name: Создадим директорию для ключей ssh под роль postgres
+    file:
+      path: /var/lib/pgsql/.ssh
+      state: directory
+      mode: '0700'
+      owner: postgres
+      group: postgres
+
+  - name: Создадим .ssh/config
+    file:
+      path: /var/lib/pgsql/.ssh/config
+      state: touch
+      mode: 0600
+    become_user: postgres
+
+  - name: Отредактируем edit .ssh/config
+    blockinfile:
+      path: /var/lib/pgsql/.ssh/config
+      block: StrictHostKeyChecking=no
+    become_user: postgres
+
+  - name: Передаем публичный ключик
+    shell: cat /vagrant/playbook/masterssh/id_rsa.pub >> /var/lib/pgsql/.ssh/authorized_keys
+
+  - name: Передаем ключик
+    copy: src=slavessh/ dest=/var/lib/pgsql/.ssh/ owner=postgres group=postgres mode=0600
+
+  - name: Установим Barman
+    yum:
+      name:
+        - https://sourceforge.net/projects/pgbarman/files/2.9/python-barman-2.9-1.el7.noarch.rpm
+        - https://sourceforge.net/projects/pgbarman/files/2.9/barman-2.9-1.el7.noarch.rpm
+        - https://sourceforge.net/projects/pgbarman/files/2.9/barman-cli-2.9-1.el7.noarch.rpm
+      state: installed
+
+  - name: Конфигурационный файл barman
+    copy: src=barman_master.conf dest=/etc/barman.d/master.conf owner=root group=root mode=0644
+
+  - name: barman pgpass
+    copy: src=barman_pgpass dest=/var/lib/barman/.pgpass owner=barman group=barman mode=0600
+
+  - name: barman cron task
+    shell: barman cron
+    become_user: barman
+
+#  - name: add aliases to postgres /var/lib/pgsql/.bash_profile
+#    blockinfile:
+#      path: /var/lib/pgsql/.bash_profile
+#      mode: 0600
+#      block: |
+#        alias vi='vim'
+#        alias ll='ls -l --color=auto'
+#        alias ls='ls --color=auto'
+#    become_user: postgres
+
+  - name: Сделаем проще жизнь
+    copy: src=sudoers.d_postgres dest=/etc/sudoers.d/postgres owner=root group=root mode=0440
+
+  - name: права на директорию под wal-files archive
+    file:
+      path: /var/lib/pgsql/11/wal_bck
+      state: directory
+      mode: '0700'
+      owner: postgres
+      group: postgres
+
+  - name: Инициализируем кластер с русской локалью
+    shell: /usr/pgsql-11/bin/initdb -E UTF8 --locale ru_RU.UTF-8 -D /var/lib/pgsql/11/data/
+    become_user: postgres
+
+  - name: файл конфигурации
+    copy: src=postgresql.auto.conf dest=/var/lib/pgsql/11/data/postgresql.auto.conf owner=postgres group=postgres mode=0600
+
+  - name: перезапуск postgresql
+    systemd:
+      name: postgresql-11
+      state: restarted
+      enabled: yes
+
+  - name: пропишем пароль для пользователя postgres
+    postgresql_query:
+      db: template1
+      login_user: postgres
+      query: ALTER USER postgres PASSWORD 'postpass'
+    become_user: postgres
+
+  - name: Скопируем pgpass
+    copy: src=slave_pgpass dest=/var/lib/pgsql/.pgpass owner=postgres group=postgres mode=0600
+
+  - name: Настройки pg_hba.conf
+    copy: src=pg_hba.conf dest=/var/lib/pgsql/11/data/ owner=postgres group=postgres mode=0600
+
+  - name: перезапуск postgresql
+    systemd:
+      name: postgresql-11
+      state: restarted
+      enabled: yes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

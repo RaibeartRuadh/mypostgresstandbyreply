@@ -1,0 +1,51 @@
+---
+
+- hosts: all
+  become: true
+  tasks:
+
+  - name: Установим epel
+    yum:
+      name:
+      - epel-release
+
+  - name: Установим SELinux в permissive режим
+    selinux:
+      policy: targeted
+      state: permissive
+##
+  - name: маппируем хосты
+    blockinfile:
+      path: /etc/hosts
+      block: |
+        {{ item.ip }} {{ item.name }}
+      marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item.name }}"
+    with_items:
+    - { name: master, ip: 192.168.100.11 }
+    - { name: slave, ip: 192.168.100.10 }
+
+  - name: Получаем ключик postgresql 11
+    rpm_key:
+      key: https://download.postgresql.org/pub/repos/yum/RPM-GPG-KEY-PGDG-11
+      state: present
+  
+  - name: Прописываем репозиторий postgresql
+    yum:
+      name: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+      update_cache: yes
+      state: present
+
+  - name: Русская локаль - опционально
+    shell: |
+      localedef  -i ru_RU -f UTF-8 ru_RU.UTF-8
+      localectl set-locale LANG=ru_RU.UTF-8
+    notify:
+      - system restart
+
+  handlers:
+  - name: system restart
+    reboot:
+        reboot_timeout: 100
+
+
+

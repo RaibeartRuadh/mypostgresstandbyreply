@@ -3,28 +3,31 @@
 # RR
 
 MACHINES = {
-  :master => {
+  :slave => {
         :box_name => "centos/7",
         :net => [
         {ip: '192.168.100.10', adapter: 2, netmask: "255.255.255.0", virtualbox__intnet: "net"}
   ] 
   },
-  :slave => {
+  :master => {
         :box_name => "centos/7",
         :net => [
         {ip: '192.168.100.11', adapter: 2, netmask: "255.255.255.0", virtualbox__intnet: "net"}
-  ]
-  },    
-  :barman => {
-        :box_name => "centos/7",
-        :net => [
-        {ip: '192.168.100.12', adapter: 2, netmask: "255.255.255.0", virtualbox__intnet: "net"}
   ]
   }
 }
 
 #################################################################################3
 Vagrant.configure(2) do |config|
+
+  config.vm.define "master" do |c|
+    c.vm.network "forwarded_port", adapter: 1, guest: 22, host: 2321, id: "ssh", host_ip: '127.0.0.1'
+  end
+  config.vm.define "slave" do |c|
+    c.vm.network "forwarded_port", adapter: 1, guest: 22, host: 2421, id: "ssh", host_ip: '127.0.0.1'
+  end
+
+
   MACHINES.each do |boxname, boxconfig|
     config.vm.define boxname do |box|
         box.vm.box = boxconfig[:box_name]
@@ -39,21 +42,23 @@ Vagrant.configure(2) do |config|
         end
         box.vm.network 'public_network', boxconfig[:public] if boxconfig.key?(:public)
         box.vm.provision "shell", path: "config/sshscript.sh"
-        # нужно если
-        case boxname.to_s
-        when "master"
+
+        #case boxname.to_s
         box.vm.provision "ansible" do |ansible|
-          ansible.playbook = "playbook/play1.yml"
-      end
-        when "slave"
+          ansible.playbook = "playbook/main.yml"
+          ansible.become = "true"
+          #ansible.verbose = "v"
+        end        
         box.vm.provision "ansible" do |ansible|
-          ansible.playbook = "playbook/play2.yml"
-      end
-        when "barman"
+          ansible.playbook = "playbook/slave.yml"
+          ansible.become = "true"
+          #ansible.verbose = "v"
+        end
         box.vm.provision "ansible" do |ansible|
-          ansible.playbook = "playbook/play3.yml"
-      end
-        end    
+          ansible.playbook = "playbook/master.yml"
+          ansible.become = "true"
+          #ansible.verbose = "v"
+        end
     end
   end
 end
