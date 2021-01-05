@@ -1,5 +1,0 @@
----
-
-- hosts: barman
-  become: true
-  tasks:
