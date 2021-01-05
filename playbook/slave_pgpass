@@ -1,2 +1,2 @@
 localhost:5432:*:postgres:postpass
-master:5432:*:repluser:reppass
+master:5432:*:replicant:reppass

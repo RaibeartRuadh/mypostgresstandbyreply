@@ -11,6 +11,7 @@
       packages:
       - nano
       - mc
+      - unzip
       - postgresql11-server
       - postgresql11-contrib
       - python2-psycopg2
@@ -96,6 +97,12 @@
   - name: Копируем pg_hba.conf
     copy: src=pg_hba.conf dest=/var/lib/pgsql/11/data/ owner=postgres group=postgres mode=0600
 
+#  - name: а если так?
+#    lineinfile:
+#      path: /var/lib/pgsql/11/data/pg_hba.conf
+#      line: "host replication all 192.168.100.10/32 trust"
+#      state: present
+
   - name: Перезапуск restart
     systemd:
       name: postgresql-11
@@ -104,7 +111,7 @@
 
   - name: Создаем базу
     postgresql_db:
-      name: test
+      name: mybase
       encoding: UTF-8
       template: template1
     become_user: postgres
@@ -121,7 +128,7 @@
   - name: Создаем роль под репликацию
     postgresql_user:
       db: postgres
-      name: repluser
+      name: replicant
       password: reppass
       encrypted: true
       role_attr_flags: LOGIN,REPLICATION
@@ -150,7 +157,7 @@
       query: SELECT pg_create_physical_replication_slot('barman')
     become_user: postgres
 
-  - name: select pg_reload_conf
+  - name: выполним pg_reload_conf
     postgresql_query:
       db: postgres
       login_user: postgres

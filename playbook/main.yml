@@ -21,8 +21,8 @@
         {{ item.ip }} {{ item.name }}
       marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item.name }}"
     with_items:
-    - { name: master, ip: 192.168.100.11 }
-    - { name: slave, ip: 192.168.100.10 }
+    - { name: master, ip: 192.168.100.10 }
+    - { name: slave, ip: 192.168.100.11 }
 
   - name: Получаем ключик postgresql 11
     rpm_key:
@@ -35,7 +35,7 @@
       update_cache: yes
       state: present
 
-  - name: Русская локаль - опционально
+  - name: Русская локаль для postgresql - опционально
     shell: |
       localedef  -i ru_RU -f UTF-8 ru_RU.UTF-8
       localectl set-locale LANG=ru_RU.UTF-8

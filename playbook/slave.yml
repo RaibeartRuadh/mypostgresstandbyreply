@@ -12,6 +12,7 @@
       packages:
       - nano
       - mc
+      - unzip      
       - postgresql11-server
       - postgresql11-contrib
       - python2-psycopg2
@@ -81,16 +82,6 @@
     shell: barman cron
     become_user: barman
 
-#  - name: add aliases to postgres /var/lib/pgsql/.bash_profile
-#    blockinfile:
-#      path: /var/lib/pgsql/.bash_profile
-#      mode: 0600
-#      block: |
-#        alias vi='vim'
-#        alias ll='ls -l --color=auto'
-#        alias ls='ls --color=auto'
-#    become_user: postgres
-
   - name: Сделаем проще жизнь
     copy: src=sudoers.d_postgres dest=/etc/sudoers.d/postgres owner=root group=root mode=0440
 
@@ -135,10 +126,88 @@
       enabled: yes
 
 
+  - name: Выполним проверку и архивацию WAL
+    shell: |
+      barman switch-xlog --force --archive master
+      sleep 10
+    become_user: barman
 
+  - name: Отправим это на master
+    shell: |
+      barman receive-wal master
+      sleep 50
+    become_user: barman
 
+  - name: Проверка бэкапа через barman
+    shell: |
+      barman backup master
+      sleep 60
+    become_user: barman
 
+  - name: Развернем бэкап в темпе
+    shell: |
+      BACKUP_ID=$(barman list-backup --minimal master | grep -v FAILED | sort -r | head -1); \
+      barman recover master $BACKUP_ID /tmp/master/data/
+    become_user: barman
 
+  - name: Остановим postgresql 
+    systemd:
+      name: postgresql-11
+      state: stopped
+
+  - name: Удалим и пересоздадим директорию под WAL-архивы
+    file:
+      path: /var/lib/pgsql/11/wal_bck/
+      state: "{{ item }}"
+      mode: '0700'
+      owner: postgres
+      group: postgres
+    with_items:
+      - absent
+      - directory
+
+  - name: Удалим PGDATA директорию
+    file:
+      path: /var/lib/pgsql/11/data/
+      state: absent
+
+  - name: Перенесем из времянки наш бэкап в PGDATA
+    shell: mv /tmp/master/data/ /var/lib/pgsql/11/data/
+
+  - name: Создадим recovery.conf
+    file:
+      path: /var/lib/pgsql/11/data/recovery.conf
+      state: touch
+      owner: postgres
+      group: postgres
+      mode: '0600'
+
+  - name: Внесем данные в recovery.conf
+    blockinfile:
+      path: /var/lib/pgsql/11/data/recovery.conf
+      block: |
+        primary_slot_name = 'standby_slot'
+        primary_conninfo = 'host=master port=5432 user=replicant'
+        standby_mode = 'on'
+
+  - name: Раскоментирум hot_standby в postgresql.auto.conf
+    replace:
+      path: /var/lib/pgsql/11/data/postgresql.auto.conf
+      regexp: '^#(hot_standby =.*)'
+      replace: '\1'
+
+  - name: Поменяем права на директорию
+    file:
+      path: /var/lib/pgsql/11/data/
+      state: directory
+      recurse: yes
+      owner: postgres
+      group: postgres
+
+  - name: Запуск postgresql
+    systemd:
+      name: postgresql-11
+      state: started
 
 
 
