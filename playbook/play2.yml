@@ -1,5 +1,0 @@
----
-
-- hosts: slave
-  become: true
-  tasks:
