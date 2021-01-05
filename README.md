@@ -75,6 +75,14 @@
 
 ![alt text](pic2.png "")​
 
+recovery.conf
+
+        primary_slot_name = 'standby_slot'
+        primary_conninfo = 'host=master port=5432 user=replicant'
+        standby_mode = 'on'
+
+Отработка с данными параметрами конфигурации осуществляется в playbook slave.yml
+
 
 # Документация
 1. http://docs.pgbarman.org/release/2.12/
