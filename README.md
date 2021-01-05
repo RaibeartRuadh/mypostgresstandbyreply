@@ -76,3 +76,8 @@
 ![alt text](pic2.png "")​
 
 
+# Документация
+1. http://docs.pgbarman.org/release/2.12/
+2. https://www.dmosk.ru/miniinstruktions.php?mini=postgresql-replication
+3. https://postgrespro.ru/docs/postgrespro/9.5/creating-cluster
+4. https://postgrespro.ru/docs/postgrespro/9.6/warm-standby
