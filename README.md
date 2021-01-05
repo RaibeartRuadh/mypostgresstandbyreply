@@ -41,13 +41,13 @@
 
 Выполним проверку работы barman 
 
-10. на хосте slave выполним переход под роль barman - su barman
+10. на хосте slave выполним переход под роль barman -$  su barman
 11. Выполним команды:
 
-$ barman check master
-$ barman switch-wal --archive master
-$ barman backup master
-$ barman check master
+          $ barman check master
+          $ barman switch-wal --archive master
+          $ barman backup master
+          $ barman check master
 
 ![alt text](pic2.png "")​
 
