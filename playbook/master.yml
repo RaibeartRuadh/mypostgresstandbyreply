@@ -97,12 +97,6 @@
   - name: Копируем pg_hba.conf
     copy: src=pg_hba.conf dest=/var/lib/pgsql/11/data/ owner=postgres group=postgres mode=0600
 
-#  - name: а если так?
-#    lineinfile:
-#      path: /var/lib/pgsql/11/data/pg_hba.conf
-#      line: "host replication all 192.168.100.10/32 trust"
-#      state: present
-
   - name: Перезапуск restart
     systemd:
       name: postgresql-11

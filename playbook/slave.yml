@@ -125,7 +125,7 @@
       state: restarted
       enabled: yes
 
-
+# Отработка архивации и восстановления данных
   - name: Выполним проверку и архивацию WAL
     shell: |
       barman switch-xlog --force --archive master
