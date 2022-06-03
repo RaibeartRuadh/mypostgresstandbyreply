@@ -13,8 +13,8 @@
       - nano
       - mc
       - unzip      
-      - postgresql11-server
-      - postgresql11-contrib
+      - postgresql12-server
+      - postgresql12-contrib
       - python2-psycopg2
       - python-argcomplete
       - python-argh
@@ -87,22 +87,22 @@
 
   - name: права на директорию под wal-files archive
     file:
-      path: /var/lib/pgsql/11/wal_bck
+      path: /var/lib/pgsql/12/wal_bck
       state: directory
       mode: '0700'
       owner: postgres
       group: postgres
 
   - name: Инициализируем кластер с русской локалью
-    shell: /usr/pgsql-11/bin/initdb -E UTF8 --locale ru_RU.UTF-8 -D /var/lib/pgsql/11/data/
+    shell: /usr/pgsql-12/bin/initdb -E UTF8 --locale ru_RU.UTF-8 -D /var/lib/pgsql/12/data/
     become_user: postgres
 
   - name: файл конфигурации
-    copy: src=postgresql.auto.conf dest=/var/lib/pgsql/11/data/postgresql.auto.conf owner=postgres group=postgres mode=0600
+    copy: src=postgresql.auto.conf dest=/var/lib/pgsql/12/data/postgresql.auto.conf owner=postgres group=postgres mode=0600
 
   - name: перезапуск postgresql
     systemd:
-      name: postgresql-11
+      name: postgresql-12
       state: restarted
       enabled: yes
 
@@ -117,15 +117,14 @@
     copy: src=slave_pgpass dest=/var/lib/pgsql/.pgpass owner=postgres group=postgres mode=0600
 
   - name: Настройки pg_hba.conf
-    copy: src=pg_hba.conf dest=/var/lib/pgsql/11/data/ owner=postgres group=postgres mode=0600
+    copy: src=pg_hba.conf dest=/var/lib/pgsql/12/data/ owner=postgres group=postgres mode=0600
 
   - name: перезапуск postgresql
     systemd:
-      name: postgresql-11
+      name: postgresql-12
       state: restarted
       enabled: yes
 
-# Отработка архивации и восстановления данных
   - name: Выполним проверку и архивацию WAL
     shell: |
       barman switch-xlog --force --archive master
@@ -152,12 +151,12 @@
 
   - name: Остановим postgresql 
     systemd:
-      name: postgresql-11
+      name: postgresql-12
       state: stopped
 
   - name: Удалим и пересоздадим директорию под WAL-архивы
     file:
-      path: /var/lib/pgsql/11/wal_bck/
+      path: /var/lib/pgsql/12/wal_bck/
       state: "{{ item }}"
       mode: '0700'
       owner: postgres
@@ -168,15 +167,15 @@
 
   - name: Удалим PGDATA директорию
     file:
-      path: /var/lib/pgsql/11/data/
+      path: /var/lib/pgsql/12/data/
       state: absent
 
   - name: Перенесем из времянки наш бэкап в PGDATA
-    shell: mv /tmp/master/data/ /var/lib/pgsql/11/data/
+    shell: mv /tmp/master/data/ /var/lib/pgsql/12/data/
 
   - name: Создадим recovery.conf
     file:
-      path: /var/lib/pgsql/11/data/recovery.conf
+      path: /var/lib/pgsql/12/data/recovery.conf
       state: touch
       owner: postgres
       group: postgres
@@ -184,7 +183,7 @@
 
   - name: Внесем данные в recovery.conf
     blockinfile:
-      path: /var/lib/pgsql/11/data/recovery.conf
+      path: /var/lib/pgsql/12/data/recovery.conf
       block: |
         primary_slot_name = 'standby_slot'
         primary_conninfo = 'host=master port=5432 user=replicant'
@@ -192,13 +191,13 @@
 
   - name: Раскоментирум hot_standby в postgresql.auto.conf
     replace:
-      path: /var/lib/pgsql/11/data/postgresql.auto.conf
+      path: /var/lib/pgsql/12/data/postgresql.auto.conf
       regexp: '^#(hot_standby =.*)'
       replace: '\1'
 
   - name: Поменяем права на директорию
     file:
-      path: /var/lib/pgsql/11/data/
+      path: /var/lib/pgsql/12/data/
       state: directory
       recurse: yes
       owner: postgres
@@ -206,7 +205,7 @@
 
   - name: Запуск postgresql
     systemd:
-      name: postgresql-11
+      name: postgresql-12
       state: started
 
 

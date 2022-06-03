@@ -13,7 +13,7 @@
     selinux:
       policy: targeted
       state: permissive
-##
+
   - name: маппируем хосты
     blockinfile:
       path: /etc/hosts
