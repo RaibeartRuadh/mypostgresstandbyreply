@@ -5,14 +5,14 @@
 MACHINES = {
   
   :master => {
-        :box_name => "centos/7",
+        :box_name => "BOX1",
         :net => [
         {ip: '192.168.100.10', adapter: 2, netmask: "255.255.255.0", virtualbox__intnet: "net"}
   ]
   },
   
   :slave => {
-        :box_name => "centos/7",
+        :box_name => "BOX1",
         :net => [
         {ip: '192.168.100.11', adapter: 2, netmask: "255.255.255.0", virtualbox__intnet: "net"}
   ] 

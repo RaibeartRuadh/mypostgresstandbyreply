@@ -24,9 +24,12 @@
     - { name: master, ip: 192.168.100.10 }
     - { name: slave, ip: 192.168.100.11 }
 
-  - name: Получаем ключик postgresql 11
+  - name: Обновим ca-certificates на случай, если они устарели
+    yum: name=ca-certificates state=latest
+
+  - name: Получаем ключик postgresql 12
     rpm_key:
-      key: https://download.postgresql.org/pub/repos/yum/RPM-GPG-KEY-PGDG-11
+      key: https://download.postgresql.org/pub/repos/yum/RPM-GPG-KEY-PGDG-12
       state: present
   
   - name: Прописываем репозиторий postgresql
